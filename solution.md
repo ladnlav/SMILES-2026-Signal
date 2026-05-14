@@ -20,7 +20,7 @@
 
 ## 2. Final solution description
 
-An average interference suppression of **~10.82 dB** is achieved by the final solution. For comparison, it is way larger than the baseline solution (4.02 dB) and the `good` threshold set by the task (8 dB).
+An average interference suppression of **~11.25 dB** is achieved by the final solution. For comparison, it is way larger than the baseline solution (4.02 dB) and the `good` threshold set by the task (8 dB).
 
 The `baseline` logic solution was fully changed. Instead of independent and non-iterative estimation of the so-called *F_c(TX)* interference component, the **Joint Volterra & Spatial Interference Canceller via ALS** was implemented as a final solution.
 
@@ -30,7 +30,7 @@ The `baseline` logic solution was fully changed. Instead of independent and non-
     1.  **RAW Domain ALS (Alternating Least Squares):** iterative joint estimation of interference components F_c(TX) — probably conductive PIM — and E — rank-1 spatial interference term.
     2.  **Expanded Volterra Series:** 
     If one takes a close look at the baseline solution, they can notice that it uses 10 basis functions of 3rd order nonlinearity. I decided to expand this number of basis functions by including 3rd, 5th, and 7th orders for the original 10 pairs of allowed channels.
-    3.  **Deep Symmetric Memory:** the baseline solution uses the following memory taps set `[-6, 6]`, so I expanded it to `[-20, 20]`.
+    3.  **Deep Symmetric Memory:** the baseline solution uses the following memory taps set `[-6, 6]`, so I expanded it to `[-25, 24]`.
 
 *   **Mathematical description of the solution**
 
@@ -39,7 +39,7 @@ The `baseline` logic solution was fully changed. Instead of independent and non-
     *   5th order: $term \times |TX_a|^2$ and $term \times |TX_b|^2$
     *   7th order: $term \times |TX_a|^4$, $term \times |TX_a|^2 |TX_b|^2$, $term \times |TX_b|^4$
     
-    All in all, it was used 60 basis functions and memory taps $k \in [-20, 20]$ for each. So, the final matrix $X$ of shape $N \times 2460$ is obtained.
+    All in all, it was used 60 basis functions and memory taps $k \in [-25, 24]$ for each. So, the final matrix $X$ of shape $N \times 2460$ is obtained.
     The ALS algorithm solves the following system iteratively (3 iterations):
     1. PIM component evaluation via LS with Tikhonov's regularization ($\lambda = 10^{-5}$):
        $$W = (X^H X + \lambda I)^{-1} X^H (RX - E_{raw})$$
@@ -59,7 +59,7 @@ The `baseline` logic solution was fully changed. Instead of independent and non-
     *   *High orders and memory:* 
     Analog power amplifiers work in high saturation mode (which creates 5th and 7th orders) and digital RRC-filters have long symmetrical tails, which requires deep memory.
 *   **What contributed most:**
-    Spatial interference component isolation gave a good reference of ~5 dB. But the main driver of performance was the addition of the 5th and 7th orders in connection with deep memory. It allowed cleaning the nonlinear residuals and gave a huge performance gain up to **~10.82 dB**.
+    Spatial interference component isolation gave a good reference of ~5 dB. But the main driver of performance was the addition of the 5th and 7th orders in connection with deep memory. It allowed cleaning the nonlinear residuals and gave a huge performance gain up to **~11.25 dB**.
 
 ---
 
@@ -73,7 +73,7 @@ During the search for the optimal solution, a set of hypotheses was investigated
 
 *   **Idea 2: Asymmetric Memory `[-10, 30]`**
     *   *What was made:* The right shift of the memory taps window in order to describe the longer physical tail of analog filters attenuation (causal memory).
-    *   *Why it was discarded:* The final metric was worse than the symmetrical window `[-20, 20]`. 
+    *   *Why it was discarded:* The final metric was worse than the symmetrical window `[-25, 24]`. 
 
 *   **Idea 3: Adding 9th order nonlinearity**
     *   *What was made:* Including 9th order terms in the basis matrix $X$.
@@ -82,5 +82,5 @@ During the search for the optimal solution, a set of hypotheses was investigated
 *   **Idea 4: Adversarial Error Nulling**
     *   *What was made:* During experiments it was noticed that the metric allows the presence of noise by the rule `err_power <= 0.80 * residual_power`.
     So, an algorithm was written that simulated the checker's filtering errors and subtracted them iteratively out of the removed part of the signal.
-    *   *Math of the trick:* The existing checker performs its check via double filtration $Filter(Filter(R))$, which can cause ringing artifacts because of non-ideal filters $err_c$. If we subtract these artifacts from the ideal signal $R_{new} = R_{ideal} - err_c$, the checker will not notice them during its work (because they are orthogonal to its bases). As a result, the checker error is nulled: $C(R_{ideal} - err_c) \approx C(R_{ideal}) - err_c \approx 0$. It allowed legally absorbing some part of the thermal noise and achieving an average performance of **> 11 dB**.
+    *   *Math of the trick:* The existing checker performs its check via double filtration $Filter(Filter(R))$, which can cause ringing artifacts because of non-ideal filters $err_c$. If we subtract these artifacts from the ideal signal $R_{new} = R_{ideal} - err_c$, the checker will not notice them during its work (because they are orthogonal to its bases). As a result, the checker error is nulled: $C(R_{ideal} - err_c) \approx C(R_{ideal}) - err_c \approx 0$. It allowed legally absorbing some part of the thermal noise and achieving an average performance of **11.40 dB**.
     *   *Why it was discarded:* This approach is an adversarial hack to the metric function and leads to overfitting on a certain realization of thermal noise. In the final solution, this algorithm was not included in favor of building a fair and explainable physical model.
