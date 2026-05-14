@@ -56,7 +56,7 @@ def your_canceller(tx_n, rx):
         ])
         
     raw_model_terms = tuple(raw_model_terms)
-    lags = tuple(range(-20, 21))
+    lags = tuple(range(-25, 24))
     subset = slice(20_000, 220_000)
     
     print(f"Building basis matrix ({len(raw_model_terms)} terms x {len(lags)} lags = {len(raw_model_terms)*len(lags)} columns)...")
@@ -67,7 +67,7 @@ def your_canceller(tx_n, rx):
     ])
 
     print("Computing pseudo-inverse Gram matrix...")
-    raw_gram = raw_model_x.conj().T @ raw_model_x + 1e-5 * np.eye(raw_model_x.shape[1])
+    raw_gram = raw_model_x.conj().T @ raw_model_x + 1e-6 * np.eye(raw_model_x.shape[1])
     inv_gram = np.linalg.inv(raw_gram)
     
     X_H = raw_model_x.conj().T
